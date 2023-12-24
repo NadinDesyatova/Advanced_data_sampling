@@ -1,6 +1,6 @@
 -- Название и продолжительность самого длительного трека
-SELECT track_name, MAX(duration) FROM tracks
- GROUP BY track_name;
+SELECT track_name, duration FROM tracks
+ WHERE duration = (SELECT MAX(duration) FROM tracks);
 
 -- Название треков, продолжительность которых не менее 3,5 минут
 SELECT track_name, duration FROM tracks
@@ -36,10 +36,12 @@ SELECT album_name, AVG(duration) FROM albums a
  GROUP BY album_name;
 
 -- Все исполнители, которые не выпустили альбомы в 2020 году
-SELECT name_alias, release_year FROM performers p
-  JOIN album_performer ap ON p.performer_id = ap.performer_id
-  JOIN albums ON ap.album_id = albums.album_id
- WHERE release_year != 2020;
+SELECT name_alias FROM performers 
+ WHERE name_alias NOT IN 
+       (SELECT name_alias FROM performers p
+          JOIN album_performer ap ON p.performer_id = ap.performer_id
+          JOIN albums ON ap.album_id = albums.album_id
+         WHERE release_year = 2020);
 
 -- Названия сборников, в которых присутствует конкретный исполнитель (Yuri Shevchuk)
 SELECT collection_name FROM collections c
@@ -68,8 +70,12 @@ SELECT name_alias, duration FROM tracks t
  WHERE duration = (SELECT MIN(duration) FROM tracks);
  
 -- Названия альбомов, содержащих наименьшее количество треков
-SELECT album_name, MIN(al.ct) min_tracks_number FROM
-       (SELECT album_name, COUNT(track_id) ct FROM albums a 
-          JOIN tracks t ON a.album_id = t.album_id 
-         GROUP BY album_name) al
-GROUP BY album_name;
+SELECT album_name, COUNT(track_id) min_tracks_number FROM albums a
+  JOIN tracks t ON a.album_id  = t.album_id 
+ GROUP BY album_name
+HAVING COUNT(track_id) =
+       (SELECT COUNT(track_id) FROM albums a 
+         JOIN tracks t on a.album_id  = t.album_id 
+        GROUP BY album_name
+        ORDER BY COUNT(track_id)
+        LIMIT 1);
